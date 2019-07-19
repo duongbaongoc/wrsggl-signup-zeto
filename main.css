@@ -85,6 +85,30 @@ input[type=button] {
 	background-color: gainsboro;
 }
 
+.tooltip {
+	font-size: 20px;
+	color: green;
+	font-weight: bold;
+}
+
+.tooltip .tooltiptext {
+  font-size: 15px;
+  visibility: hidden;
+  width: 200px;
+  background-color: peru;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+
+  /* Position the tooltip */
+  position: absolute;
+  z-index: 1;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
 /************************panels*******************************/
 #panels h2 {
 	color: 
@@ -95,7 +119,7 @@ input[type=button] {
 	margin-bottom: 30px;
 	padding: 10px 10px 10px 20px;
 	background-color: honeydew; 
-	height: 445px;
+	height: 460px;
 }
 
 #remove_form {
@@ -103,7 +127,7 @@ input[type=button] {
 	margin-bottom: 30px;
 	padding: 10px 10px 10px 20px;
 	background-color: honeydew; 
-	height: 180px;
+	height: 185px;
 }
 /*************************Calendar***************************/
 #cal .header { 
@@ -192,35 +216,3 @@ input[type=button] {
     text-shadow: #6C1A07 0px -1px; 
     background:wheat; 
 }
-
-/*
-#cal #days td:not(:last-child) { 
-    border-right:1px solid #fff; 
-}
-
-#cal #cal-frame td.today { 
-    background:#ededed; 
-    color:#8c8c8c; 
-    box-shadow:1px 1px 0px #fff inset; 
-    -moz-box-shadow:1px 1px 0px #fff inset; 
-    -webkit-box-shadow:1px 1px 0px #fff inset; 
-} 
-
-
-#cal #cal-frame td span { 
-    font-size:80%; 
-    position:relative; 
-} 
-#cal #cal-frame td span:first-child { 
-    bottom:5px; 
-} 
-#cal #cal-frame td span:last-child { 
-    top:5px; 
-}
-#cal #cal-frame table.curr { 
-    float:left;      
-} 
-#cal #cal-frame table.temp { 
-    position:absolute; 
-}
-*/

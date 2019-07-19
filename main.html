@@ -47,22 +47,28 @@
 		</span><br>
 
 		<span>Principle Investigator:
-		<input class="input_box" style="margin-left:10px;width:150px;" type="text" name="principleInvestigator"></span><br>
+		<input class="input_box" style="margin-left:10px;width:150px;" type="text" id="PI"></span><br>
 
 		<span>Plate Name:
-		<input class="input_box" style="margin-left:74px;width:150px;" type="text" name="plateName"></span><br>
+		<input class="input_box" style="margin-left:74px;width:150px;" type="text" id="plateName"></span><br>
 
 		<span>Email:
-		<input class="input_box" style="margin-left:119px;width:150px;" type="text" name="email"></span><br>
+		<input class="input_box" style="margin-left:119px;width:150px;" type="text" id="email"></span><br>
 		
 		<span>New Password:
-		<input class="input_box" style="margin-left:53px;width:150px;" type="password" name="plateName"></span><br>
+		<span class="tooltip"> &#9432;
+			<span class="tooltiptext">Each plate has a password. Password can be shared between plates.</span>
+		</span>
+		<input class="input_box" style="margin-left:31px;width:150px;" type="password" id="password1"></span><br>
 		
 		<span>Retype Password:
-		<input class="input_box" style="margin-left:36px;width:150px;" type="password" name="plateName"></span><br>
+		<input class="input_box" style="margin-left:36px;width:150px;" type="password" id="password2"></span><br>
 
-		<span>Abbrev. Name of This Lab (6 letters) :
-		<input class="input_box" style="width:50px;" type="text" name="plateName"></span><br>
+		<span>Abbrev. Name of This Lab:
+		<span class="tooltip"> &#9432;
+			<span class="tooltiptext">6 letters, case-insensitive</span>
+		</span>
+		<input class="input_box" style="margin-left:5px;width:100px;" type="text" id="labname"></span><br>
 		
 		<input type="button" value="Sign Up" onclick="signup();"/>
 		</form>
@@ -72,14 +78,14 @@
 		<h2 style="text-align: center;"> Remove </h2>
 		Date:
 		<input class="input_box" style="margin-left:51px;width:150px;" type="date" id="remove_date"><br>
-
-		User: 
-		<input class="input_box" style="margin-left:51px;width:150px;" type="text" name="username"><br>
+		
+		Plate Name: 
+		<input class="input_box" style="margin-left:2px;width:150px;" type="text" id="platename2"><br>
 		
 		Password:
-		<input class="input_box" style="margin-left:15px;width:150px;" type="password" name="plateName"><br>
+		<input class="input_box" style="margin-left:15px;width:150px;" type="password" id="pw3"><br>
 								
-		<input style="" type="button" value="Remove" onclick="" />
+		<input style="" type="button" value="Remove" onclick="remove();" />
 		
 		</form>
 	</div>
