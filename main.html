@@ -28,20 +28,20 @@
 		<span>Number of Markers:
 		<input class="input_box" style="margin-left:18px;width:150px;" type="number" id="markers"></span><br>
 
-		<span>Ladder:
+		<span id="ladder">Ladder:
 		<input style="margin-left:105px;" type="radio" name="ladder" value="445" checked> 445
 		<input style="margin-left:10px;" type="radio" name="ladder" value="680"> 680
 		<input style="margin-left:10px;" type="radio" name="ladder" value="1400"> 1400
 		</span><br>
 		
-		<span>Fluor:
+		<span id="fluor">Fluor:
 		<input style="margin-left:120px;" type="checkbox" name="fluor" value="FAM" checked> FAM
 		<input type="checkbox" name="fluor" value="VIC"> VIC
 		<input type="checkbox" name="fluor" value="NED"> NED
 		<input type="checkbox" name="fluor" value="PET"> PET
 		</span><br>
 		
-		<span>Plate Type:
+		<span id="platetype">Plate Type:
 		<input style="margin-left:80px;" type="radio" name="ptype" value="96" checked> 96
 		<input type="radio" name="ptype" value="384"> 384
 		</span><br>
@@ -109,59 +109,59 @@
 		<div id="cal-frame"> 
 			<table class="curr"> 
 				<tbody> 
-					<tr id="1">
-						<td class="Sun">0</td>
-						<td class="Mon">0</td>
-						<td class="Tue">0</td>
-						<td class="Wed">0</td>
-						<td class="Thu">0</td>
-						<td class="Fri">0</td>
-						<td class="Sat">0</td>
-					</tr id="2"> 
 					<tr>
-						<td class="Sun">0</td>
-						<td class="Mon">0</td>
-						<td class="Tue">0</td>
-						<td class="Wed">0</td>
-						<td class="Thu">0</td>
-						<td class="Fri">0</td>
-						<td class="Sat">0</td>
-					</tr>
-					<tr id="3">
-						<td class="Sun">0</td>
-						<td class="Mon">0</td>
-						<td class="Tue">0</td>
-						<td class="Wed">0</td>
-						<td class="Thu">0</td>
-						<td class="Fri">0</td>
-						<td class="Sat">0</td>
-					</tr id="4">
+						<td class="Sun" onclick="show_avail(this)">0</td>
+						<td class="Mon" onclick="show_avail(this)">0</td>
+						<td class="Tue" onclick="show_avail(this)">0</td>
+						<td class="Wed" onclick="show_avail(this)">0</td>
+						<td class="Thu" onclick="show_avail(this)">0</td>
+						<td class="Fri" onclick="show_avail(this)">0</td>
+						<td class="Sat" onclick="show_avail(this)">0</td>
+					</tr> 
 					<tr>
-						<td class="Sun">0</td>
-						<td class="Mon">0</td>
-						<td class="Tue">0</td>
-						<td class="Wed">0</td>
-						<td class="Thu">0</td>
-						<td class="Fri">0</td>
-						<td class="Sat">0</td>
+						<td class="Sun" onclick="show_avail(this)">0</td>
+						<td class="Mon" onclick="show_avail(this)">0</td>
+						<td class="Tue" onclick="show_avail(this)">0</td>
+						<td class="Wed" onclick="show_avail(this)">0</td>
+						<td class="Thu" onclick="show_avail(this)">0</td>
+						<td class="Fri" onclick="show_avail(this)">0</td>
+						<td class="Sat" onclick="show_avail(this)">0</td>
 					</tr>
-					<tr id="5">
-						<td class="Sun">0</td>
-						<td class="Mon">0</td>
-						<td class="Tue">0</td>
-						<td class="Wed">0</td>
-						<td class="Thu">0</td>
-						<td class="Fri">0</td>
-						<td class="Sat">0</td>
+					<tr>
+						<td class="Sun" onclick="show_avail(this)">0</td>
+						<td class="Mon" onclick="show_avail(this)">0</td>
+						<td class="Tue" onclick="show_avail(this)">0</td>
+						<td class="Wed" onclick="show_avail(this)">0</td>
+						<td class="Thu" onclick="show_avail(this)">0</td>
+						<td class="Fri" onclick="show_avail(this)">0</td>
+						<td class="Sat" onclick="show_avail(this)">0</td>
 					</tr>
-					<tr id="6">
-						<td class="Sun">0</td>
-						<td class="Mon">0</td>
-						<td class="Tue">0</td>
-						<td class="Wed">0</td>
-						<td class="Thu">0</td>
-						<td class="Fri">0</td>
-						<td class="Sat">0</td>
+					<tr>
+						<td class="Sun" onclick="show_avail(this)">0</td>
+						<td class="Mon" onclick="show_avail(this)">0</td>
+						<td class="Tue" onclick="show_avail(this)">0</td>
+						<td class="Wed" onclick="show_avail(this)">0</td>
+						<td class="Thu" onclick="show_avail(this)">0</td>
+						<td class="Fri" onclick="show_avail(this)">0</td>
+						<td class="Sat" onclick="show_avail(this)">0</td>
+					</tr>
+					<tr>
+						<td class="Sun" onclick="show_avail(this)">0</td>
+						<td class="Mon" onclick="show_avail(this)">0</td>
+						<td class="Tue" onclick="show_avail(this)">0</td>
+						<td class="Wed" onclick="show_avail(this)">0</td>
+						<td class="Thu" onclick="show_avail(this)">0</td>
+						<td class="Fri" onclick="show_avail(this)">0</td>
+						<td class="Sat" onclick="show_avail(this)">0</td>
+					</tr>
+					<tr">
+						<td class="Sun" onclick="show_avail(this)">0</td>
+						<td class="Mon" onclick="show_avail(this)">0</td>
+						<td class="Tue" onclick="show_avail(this)">0</td>
+						<td class="Wed" onclick="show_avail(this)">0</td>
+						<td class="Thu" onclick="show_avail(this)">0</td>
+						<td class="Fri" onclick="show_avail(this)">0</td>
+						<td class="Sat" onclick="show_avail(this)">0</td>
 					</tr>
 				</tbody> 
 			</table>
@@ -175,11 +175,18 @@
 	<div id="sideinfo">
 		<div id="notation">
 			<div class="dot" id="dot1"></div>
-			<div style="float:left;">available</div>
+			<div style="float:left;">Available</div>
 			<div class="dot" id="dot2"></div>
-			<div style="float:left;">unavailable</div>
+			<div style="float:left;clear:right;">Unavailable</div>
+			<br><br>
+			<div class="dot" id="dot3" style="float:left;margin-left: 80px;"></div>
+			<div>Registered Plates</div>
 		</div>
 		<br>
+		
+		<div id="avail_info"></div>
+		
+		<div id="reservation_info"></div>
 	</div>
 	
 

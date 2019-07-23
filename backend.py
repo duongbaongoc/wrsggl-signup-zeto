@@ -3,7 +3,10 @@ from flask import redirect, url_for
 from flask_cors import CORS
 import flask_sqlalchemy as sqlalchemy
 import flask
+from sqlalchemy import literal
 import datetime
+
+#All dates are String type of format: yyyy-mm-dd
 
 ############################################################################
 #########CONNECT TO THE DATABASE############################################
@@ -18,19 +21,19 @@ base_url = '/api/'
 
 ############################################################################
 #########EACH CLASS IS FOR ONE TABLE OF THE DATABASE########################
-
-class Date(db.Model): #dates that are not in the table are available
-    Date = db.Column(db.Date, unique = True, primary_key = True)
-    Num96PlatesAvail = db.Column(db.Integer, nullable = False)
-    Num384PlatesAvail = db.Column(db.Integer, nullable = False)
+    
+class Availability(db.Model): #dates that are not in the table are available
+    ThisDate = db.Column(db.String(10), nullable = False, unique= True, primary_key = True)
+    Num96PlatesAvail = db.Column(db.Integer, nullable = False) #number of plates used/signed up for
+    Num384PlatesAvail = db.Column(db.Integer, nullable = False) #number of plates used/signed up for
     
 class Reservation(db.Model):
     id = db.Column(db.Integer, nullable = False, primary_key=True, unique = True)
-    Date = db.Column(db.Date, nullable = False)
+    ThisDate = db.Column(db.String(10), nullable = False)
     User = db.Column(db.String(50), nullable = False)
     Markers = db.Column(db.Integer, nullable = False)
     Ladder = db.Column(db.Integer, nullable = False)
-    Flour = db.Column(db.String(5), nullable = False)
+    Flour = db.Column(db.String(20), nullable = False) #i.e. "FAM,VIC,NED,"
     PlateType = db.Column(db.Integer, nullable = False)
     PI = db.Column(db.String(50), nullable = False)
     PlateName = db.Column(db.String(50), nullable = False)
@@ -39,7 +42,7 @@ class Reservation(db.Model):
 
 class Recycle(db.Model):
     id = db.Column(db.Integer, nullable = False, primary_key=True, unique = True)
-    Date = db.Column(db.Date, nullable = False)
+    ThisDate = db.Column(db.String(10), nullable = False)
     User = db.Column(db.String(50), nullable = False)
     Markers = db.Column(db.Integer, nullable = False)
     Ladder = db.Column(db.Integer, nullable = False)
@@ -53,15 +56,15 @@ class Recycle(db.Model):
 ############################################################################
 #########REQUEST: CREATE A NEW DATA ENTRY###################################
 
-#Create an entry in the Date table
-@app.route(base_url + 'date', methods=['POST'])
-def DateCreate(): 
-    row = Date(**request.json)
+#Create an entry in the Availability table
+@app.route(base_url + 'availability', methods=['POST'])
+def AvailabilityCreate(): 
+    row = Availability(**request.json)
     db.session.add(row)
     db.session.commit()
     db.session.refresh(row)
 
-    return jsonify({"status": 1, "Date": Date_row_to_obj(row)}), 200
+    return jsonify({"status": 1, "Availability": Availability_to_row_obj(row)}), 200
 
 #Create an entry in the Reservation table
 @app.route(base_url + 'reservation', methods=['POST'])
@@ -71,7 +74,7 @@ def ReservationCreate():
     db.session.commit()
     db.session.refresh(row)
 
-    return jsonify({"status": 1, "Reservation": Reservation_row_to_obj(row)}), 200
+    return jsonify({"status": 1, "Reservation": Reservation_to_row_obj(row)}), 200
 
 #Create an entry in the Recycle table
 @app.route(base_url + 'recycle', methods=['POST'])
@@ -81,43 +84,90 @@ def RecycleCreate():
     db.session.commit()
     db.session.refresh(row)
 
-    return jsonify({"status": 1, "Recycle": Recycle_row_to_obj(row)}), 200
+    return jsonify({"status": 1, "Recycle": Recycle_to_row_obj(row)}), 200
 
 ############################################################################
 #########REQUESTS: CHECK IF A VALUE ALREADY EXISTS##########################
 
-#Date table
-#Check if a Date already exists in the table
+#Availability table
+#Check if a date already exists in the table
 #Return a JSON object whose status is 1 if it does and 0 otherwise
-@app.route(base_url + 'check-date-table-date', methods=["GET"])
-def CheckDateTableDate():
-    date = request.args.get('date')
-    dateExist = Date.query.filter(Date.Date==date).first()
-    if (emailExist != None):
-        return jsonify({"status": 1,"Date":date}), 200
+@app.route(base_url + 'check-avail-table-date', methods=["GET"])
+def CheckAvailabilityTableDate():
+    date = request.args.get('yyyy_mm_dd')
+    dateExist = Availability.query.filter(Availability.ThisDate==date).first()
+    if (dateExist != None):
+        return jsonify({"status": 1,"date":date}), 200
     else:
         return jsonify({"status": 0}), 200
+
 
 ############################################################################
 ######### REQUEST: RETURN ENTRIES (JSON) OF A TABLE WITH PARAM #############
 
-#Date table
-#Return the entry (JSON) of a given date. If the date is not in the table, return "available"
-#Example route: /api/date-availability?date=2019-?????????????????????????????????????????????????????????
-@app.route(base_url + 'date-availability', methods=["GET"])
+#Availability table
+#Return the entry of a date
+@app.route(base_url + "date_availability", methods=["GET"])
 def DateAvailability():
-    date = request.args.get('date', None)
-    if (date is None):
-        return jsonify({"status":0,"availability": "no date is given"}), 500
+    date = request.args.get('yyyy_mm_dd', None)
+    dateExist = Availability.query.filter(Availability.ThisDate==date).first()
+    if (dateExist != None):
+        return jsonify({"status": 1,"Availability":Availability_to_row_obj(dateExist)}), 200
+    else:
+        return jsonify({"status": 0}), 200 
+    
+#Availability table
+#Return all entries (JSON) of a month
+#Example route: /api/month_availability?yyyy_mm=2019-07
+@app.route(base_url + 'month_availability', methods=["GET"])
+def MonthAvailability():
+    month = request.args.get('yyyy_mm', None)
+    if (month is None):
+        return jsonify({"status":0,"availability": "no month is given"}), 500
 		
-    entry = Date.query.filter(Date.Date==date).first()
+    entries = Availability.query.filter(Availability.ThisDate.contains(month))
     
-    return jsonify({"status":1,"availability": Date_row_to_obj(entry)}), 200
+    result = []
+    for row in entries:
+        result.append(Availability_to_row_obj(row))
+    
+    return jsonify({"status":1,"availability": result}), 200   
 
+#Reservation table
+#Return all entries of a month
+@app.route(base_url + 'month_reservations', methods=["GET"])
+def MonthReservations():
+    yyyy_mm = request.args.get('yyyy-mm', None)
+    if (yyyy_mm is None):
+        return jsonify({"status":0,"entries": "no month is given"}), 500
+		
+    entries = Reservation.query.filter(Reservation.ThisDate.contains(yyyy_mm))
+
+    result = []
+    for row in entries:
+        result.append(Reservation_to_row_obj(row))
     
+    return jsonify({"status":1,"entries": result}), 200    
 
 ############################################################################
 #########REQUEST: UPDATE CHANGES TO TABLES##################################
+
+#Availability table
+#Increament Num96PlatesAvail or Num384PlatesAvail by 1 depending on the param
+@app.route(base_url + 'add_to_availability', methods=["POST"])
+def AddToAvail():
+    info = request.json #i.e. {date: "2019-07-19", plateType: "96"}
+    date = info["date"]
+    plateType = info["plateType"]
+    entry = Availability.query.filter(Availability.ThisDate == date).first()
+    if (plateType == "96"):
+        entry.Num96PlatesAvail += 1
+    else:
+        entry.Num384PlatesAvail += 1
+  
+    db.session.commit()
+
+    return jsonify({"status": 1, "Availability": Availability_to_row_obj(entry)}), 200
 
 ############################################################################
 #########REQUESTS: REMOVE A RECORD FROM A TABLE#############################
@@ -125,10 +175,10 @@ def DateAvailability():
 ############################################################################
 #########CONVERT A QUERY ROW TO A JSON OBJECT###############################
 
-#Date row
-def Date_to_row_obj(row):
+#Availability row
+def Availability_to_row_obj(row):
     row = {
-            "Date": row.Date,
+            "ThisDate": row.ThisDate,
             "Num96PlatesAvail": row.Num96PlatesAvail,
             "Num384PlatesAvail": row.Num384PlatesAvail
         }
@@ -138,7 +188,7 @@ def Date_to_row_obj(row):
 def Reservation_to_row_obj(row):
     row = {
             "id": row.id,
-            "Date": row.Date,
+            "ThisDate": row.ThisDate,
             "User": row.User,
             "Markers": row.Markers,
             "Ladder": row.Ladder,
@@ -155,7 +205,7 @@ def Reservation_to_row_obj(row):
 def Recycle_to_row_obj(row):
     row = {
             "id": row.id,
-            "Date": row.Date,
+            "ThisDate": row.ThisDate,
             "User": row.User,
             "Markers": row.Markers,
             "Ladder": row.Ladder,

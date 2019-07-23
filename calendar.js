@@ -66,6 +66,38 @@ function init_cal ()
 	set_cal_frame(mm, yyyy);
 	
 	highlight_today(month, yyyy);
+	
+	add_circles();
+	
+	show_reservations();
+}
+
+//This function adds circles to each cell of the calendar
+//Each circle represents a sign-up/plate name
+function add_circles()
+{
+	document.getElementById('cal-frame').querySelectorAll("td").forEach(function(el)
+		{
+			for (var i = 0; i <= 15; i++)
+			{
+				var dot = document.createElement("span");
+				dot.className += "dot";
+				dot.style.height = "15px";
+				dot.style.width = "15px";
+				dot.style.cssFloat = "right";
+				dot.style.borderRadius = "50%";
+				dot.style.margin = "2px 2px 2px 2px";
+				
+				if (i % 4 == 0)
+				{
+					dot.style.clear = "right";
+				}
+				
+				el.appendChild(dot);
+			}
+			
+			
+		});
 }
 
 //This function is to set the correct cal-frame content
@@ -142,7 +174,6 @@ function goback()
 	reset_cell_classnames();
 	
 	var today = new Date();
-	console.log(today);
 	//current time
 	var cur_month_year = document.querySelector('.month-year').innerHTML;
 	var cur_month = cur_month_year.split(" ")[0];
@@ -176,7 +207,7 @@ function goback()
 	var yyyy = prev_year;
 	set_cal_frame(mm, yyyy);
 	
-	cell_hover_css();
+	//cell_hover_css();
 	
 	highlight_today(prev_month, prev_year);
 }
@@ -219,7 +250,7 @@ function goforward()
 	var yyyy = next_year;
 	set_cal_frame(mm, yyyy);
 	
-	cell_hover_css();
+	//cell_hover_css();
 	
 	highlight_today(next_month, next_year);
 }
@@ -287,6 +318,8 @@ function signup()
 		 return;
 	} 
 	
+	//Plate name must be unique for this day
+	
 	//Email
 	var email = document.getElementById("email");
 	if (!email || email.value == "")
@@ -333,14 +366,137 @@ function signup()
 		return;
 	}
 	
-	/***********verify availability***********/
+	/***********get the rest fields***********/
+	var all_ladder = document.getElementById("ladder").getElementsByTagName("input");
+	for (var i = 0, num = all_ladder.length; i < num; i++)
+	{
+		if (all_ladder[i].checked)
+		{
+			var selected_ladder = all_ladder[i].value;
+		}
+	}
 	
+	var selected_fluors = "";
+	var all_fluors = document.getElementById("fluor").getElementsByTagName("input");
+	for (i = 0, num = all_fluors.length; i < num; i++)
+	{
+		if (all_fluors[i].checked)
+		{
+			selected_fluors += all_fluors[i].value + ",";
+		}
+	} 
+	
+	var all_platetype = document.getElementById("platetype").getElementsByTagName("input");
+	for (i = 0, num = all_platetype.length; i < num; i++)
+	{
+		if (all_platetype[i].checked)
+		{
+			var selected_platetype = all_platetype[i].value;
+		}
+	} 
+	
+	/***********verify availability***********/
+	//check if anyone ever signed up for this date (Availability table -> CheckAvailabilityTableDate)
+	var available = true;
+	
+	//have a variable for each plate type
+	var Num96PlatesAvail = 0;
+	var Num384PlatesAvail = 0;
+	if (selected_platetype == "96")
+	{
+		Num96PlatesAvail += 1;
+	}
+	else
+	{
+		Num384PlatesAvail += 1;
+	}
+	
+	//reservation entry to create
+	var reservation_entry = {
+        ThisDate: date,
+		User: user.value,
+		Markers: n_markers.value,
+		Ladder: selected_ladder,
+		Flour: selected_fluors,
+		PlateType: selected_platetype,
+		PI: PI.value,
+		PlateName: plateName.value,
+		Email: email.value,
+		Password: pw1.value
+    };
+	
+	//Availability entry, used only when create new Availability entry (the date does not exist yet)
+	var availability_entry = { 
+		ThisDate: date,
+		Num96PlatesAvail: Num96PlatesAvail,
+		Num384PlatesAvail: Num384PlatesAvail
+	};
+	
+	//handle to create an entry in the Availability table
+	var onSuccess_make_availability = function (data) {
+		console.log("Successfully created an entry for the Availability table.");
+	};	
+	var onFailure_make_availability = function () {
+		alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+		return;
+	};
+	
+	//entry to update Availability
+	var update_entry = {
+		date: date,
+		plateType: selected_platetype
+	}
+	
+	//handle to update Availability
+	var onSuccess_update_availability = function(data){
+	};
+	var onFailure_update_availability= function(){
+		alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+		return;
+	};
+	
+	//handle to check if a date in the Availability table exists
+	var onSuccess_avail_exist = function (data) {
+		if (data.status == 1)//if exists => update the table
+		{
+			makePostRequest("/api/add_to_availability", update_entry, onSuccess_update_availability, onFailure_update_availability);
+		}
+		else//if does not exist => create a new entry
+		{
+			makePostRequest("/api/availability", availability_entry, onSuccess_make_availability, onFailure_make_availability);
+		}
+	};	
+	var onFailure_avail_exist = function () {
+		alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+		return;
+	};
+		
+	//handle to add a reservation entry and availability entry to the tables
+	var onSuccess_make_reservation = function (data) {
+		//check if the date exists in the Availability table
+		makeGetRequest("/api/check-avail-table-date?yyyy_mm_dd=" + date, onSuccess_avail_exist, onFailure_avail_exist);
+		alertify.alert("You have successfully signed up for " + date);
+	};
+	var onFailure_make_reservation = function () {
+		alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+		return;
+	};
+	
+	//call to add entries
+	if (available == true) //add this reservation to the Availability and Reservation table (backend)
+	{
+		makePostRequest("/api/reservation", reservation_entry, onSuccess_make_reservation, onFailure_make_reservation);
+	}
+	
+	//if noone => sign up
+	//else => check if enough room for this plate
 	
 	//save info in the web server
 	
 	//load info of this month to the front end
+
 	
-	alertify.alert("You have successfully signed up for " + date);
+	
 }
 
 //This function is to remove a slot
@@ -348,7 +504,7 @@ function remove()
 {
 	/***********verify inputs***********/
 	//Date
-	var date = document.getElementById("remove_date").value;
+	/*var date = document.getElementById("remove_date").value;
 	if (!date)
 	{
 		 alertify.alert("Missing a remove date");
@@ -374,4 +530,197 @@ function remove()
 	//make sure the date is in the future
 	//make sure there is this plate name on that date
 	//make sure the password is correct
+	*/
+	//////////to test post requests
+}
+
+
+//show all reservations of the month that is currently shown in the calendar
+function show_reservations()
+{
+	//get the current shown month and year
+	var month_yyyy = document.getElementById("label").innerHTML;
+	var mm = String(monthNames.indexOf(month_yyyy.split(" ")[0]) + 1);
+	if (mm.length == 1)
+	{
+		mm = "0" + mm;
+	}
+	var yyyy_mm = month_yyyy.split(" ")[1] + "-" + mm;
+	
+	//make all dates of this month available for now
+	document.getElementById('cal-frame').querySelectorAll("td").forEach(function(el)
+	{
+		if (el.className != "nil")
+		{
+			el.innerHTML = "<span class='cyan' style='border-radius: 50%;padding:3px;' >" + el.innerHTML + "</span>";
+		}
+		
+		//hide all user circles
+		var child_list = el.childNodes[0].getElementsByClassName("dot");
+		if (child_list.length > 0)
+		{
+			for (var child of child_list)
+			{
+				child.style.boxShadow = "none";
+				child.style.background = "transparent";
+			}
+		}
+	});
+		
+	//get the available days of this month and their availability (how many plates available on each day)
+	var onSuccess_available = function (data) {
+        var date_list = data.availability;
+		date_list.forEach(function(date){
+			avail_status = date_available(date.Num96PlatesAvail, date.Num384PlatesAvail);
+			if (avail_status["status"] == "unavail")
+			{
+				var date = date.ThisDate.split("-")[2];
+				var cell = date_get_cell(date);
+				var ind = cell.innerHTML.indexOf(date, 0);
+				cell.innerHTML = "<span class='lightsalmon' style='border-radius: 50%;padding:3px;'>" + cell.innerHTML.substring(ind, cell.innerHTML.length);
+			}
+		});
+    };
+    var onFailure_available = function () {
+        alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+    };
+    makeGetRequest("/api/month_availability?yyyy_mm=" + yyyy_mm, onSuccess_available, onFailure_available); 
+	
+	//get all reservations for this month
+	var onSuccess_reservation = function (data) {
+        var reservation_list = data.entries;
+		
+		//show them in the calendar
+		reservation_list.forEach(function(el) {
+			var date = el.ThisDate.split("-")[2]; //date of month
+			var cell = date_get_cell(date);//get the cell on the calendar of this date
+			
+			//get the next user circle
+			var circle_list = cell.childNodes[0].getElementsByClassName("dot");
+			
+			for (var child of circle_list)
+			{
+				if (child.style.background == "transparent")
+				{
+					child.style.boxShadow = "1px 2px 1px rgba(0,0,0,.5)";
+					child.style.background = "lightskyblue";
+					child.className = "tooltip";
+					var span = document.createElement("span");
+					span.className += "tooltiptext";
+					span.innerHTML = el.User;
+					span.style.marginLeft = "20px";
+					child.appendChild(span);
+					child.onclick = function() {
+						var panel = document.getElementById("reservation_info");
+						var message = "<span style='margin-left:45px;'>SIGN-UP INFO</span><br><br>";
+						message += "USER:<span style='margin-left:115px;'>" + el.User + "<br>";
+						message += "PLATE NAME:<span style='margin-left:60px;'>" + el.PlateName + "<br>";
+						message += "Date:<span style='margin-left:126px;'>" + el.ThisDate + "<br>";
+						message += "Number of Markers:<span style='margin-left:23px;'>" + el.Markers + "<br>";
+						message += "Ladders:<span style='margin-left:102px;'>" + el.Ladder + "<br>";
+						message += "Fluors:<span style='margin-left:116px;'>" + el.Flour + "<br>";
+						message += "Plate Type:<span style='margin-left:85px;'>" + el.PlateType + "<br>"; 
+						message += "Principle Investigator:<span style='margin-left:12px;'>" + el.PI + "<br>"; 
+						message += "Email:<span style='margin-left:121px;'>" + el.Email + "<br>";
+						panel.innerHTML = message;
+					};
+					break;
+				}
+			}
+		});
+    };
+    var onFailure_reservation = function () {
+        alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+    };
+    makeGetRequest("/api/month_reservations?yyyy-mm=" + yyyy_mm, onSuccess_reservation, onFailure_reservation);
+	
+	
+	//for each cell in the calendar 
+	//{
+		//if date of the cell is not in the list of reservation => green, move on to next cell
+		//else =>  
+		
+	//remove content of "nil" cells
+	document.getElementById('cal-frame').querySelectorAll("td").forEach(function(c){
+		if (c.className == "nil")
+		{
+			while (c.firstChild)
+			{
+				c.removeChild(c.firstChild);
+			}
+		}
+	});
+}
+
+//This function checks if a an existing date is still available to schedule plates
+//param n_96: int - number of 96 plates
+//param n_384: int - number of 384 plates
+//return "avail" or "unavail", and how many avail plates of each plate type
+function date_available(n_96, n_384){
+	var total_wells = 1536;
+	var unavail_wells = n_96*96 + n_384*384;
+	var avail_wells = total_wells - unavail_wells;
+	
+	if (avail_wells <= 0)
+	{
+		return {"status": "unavail", "96": 0, "384": 0};
+	}
+	else
+	{
+		return {"status": "avail", "96": Math.floor(avail_wells / 96), "384": Math.floor(avail_wells / 384)};
+	}
+}
+
+//This function takes a date (i.e. 23rd) and returns a calendar cell of that date
+//param dd : String type, i.e. "23"
+function date_get_cell(dd)
+{
+	for (var el of document.getElementById('cal-frame').querySelectorAll("td"))
+	{
+		if (el.className != "nil")
+		{
+			var date = el.innerHTML.split(">")[1].split("<")[0];
+			if (date == dd)
+			{
+				return el;
+			}
+		}
+	}
+}
+
+//This function displays availability info of a date when clicked
+function show_avail(cell)
+{
+	//current time
+	var cur_month_year = document.querySelector('.month-year').innerHTML;
+	var cur_month = cur_month_year.split(" ")[0];
+	var cur_year = cur_month_year.split(" ")[1];
+	var mm = String(monthNames.indexOf(cur_month) + 1);
+	if (mm.length == 1)
+	{
+		mm = "0" + mm;
+	}
+	var dd = cell.innerHTML.split(">")[1].split("<")[0];
+	
+	var message = "<span style='margin-left:45px;'>AVAILABILITY</span><br><br>";
+	message += "Date:<span style='margin-left:123px;'>" + cur_month + dd + cur_year + "</span><br>";
+	
+	//get cell info from backend
+	var onSuccess_available = function (data) {
+		if (data.status == 0) //date is not in Availability table => available
+		{
+			message +=  "Number of 96-plates  :<span style='margin-left:9px;'>16 plates</span><br><span style='margin-left:45px;'>OR</span><br>Number of 384-plates:<span style='margin-left:5px;'>4 plates</span><br>";
+		}
+		else //check Availability
+		{
+			var avail_status = date_available(data.Availability.Num96PlatesAvail, data.Availability.Num384PlatesAvail);
+			message +=  "Number of 96-plates  :<span style='margin-left:9px;'>" + avail_status["96"] + " plates</span><br><span style='margin-left:45px;'>OR</span><br>Number of 384-plates:<span style='margin-left:5px;'>" + avail_status["384"] + " plates</span><br>";
+		}
+       
+		document.getElementById("avail_info").innerHTML = message;
+    };
+    var onFailure_available = function () {
+        alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+    };
+    makeGetRequest("/api/date_availability?yyyy_mm_dd=" + cur_year + "-" + mm + "-" + dd, onSuccess_available, onFailure_available); 
 }

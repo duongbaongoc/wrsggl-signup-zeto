@@ -78,11 +78,17 @@ input[type=button] {
 }
 
 #dot1 {
-	background-color: palegreen;
+	background-color: cyan;
 }
 
 #dot2 {
-	background-color: gainsboro;
+	background-color: lightsalmon;
+}
+
+#dot3 {
+	background-color: lightskyblue;
+	width: 20px;
+	height: 20px;
 }
 
 .tooltip {
@@ -91,15 +97,15 @@ input[type=button] {
 	font-weight: bold;
 }
 
-.tooltip .tooltiptext {
+.tooltip .tooltiptext{
   font-size: 15px;
   visibility: hidden;
-  width: 200px;
+  width: auto;
   background-color: peru;
   color: #fff;
   text-align: center;
   border-radius: 6px;
-  padding: 5px 0;
+  padding: 5px 10px;;
 
   /* Position the tooltip */
   position: absolute;
@@ -193,8 +199,9 @@ input[type=button] {
 #cal .curr td { 
     width:120px; 
     height:100px;
-    border:1px solid #e6e6e6; 
+    border:3px solid #e6e6e6; 
     cursor:default;
+	padding: 5px;
 }
 
 #cal #days {
@@ -215,4 +222,22 @@ input[type=button] {
 #cal #cal-frame td:not(.nil):hover { 
     text-shadow: #6C1A07 0px -1px; 
     background:wheat; 
+}
+
+.cyan {
+	background: cyan;
+}
+
+.lightsalmon {
+	background: lightsalmon;
+}
+
+/************************sideinfo*******************************/
+
+#avail_info,#reservation_info {
+	margin: 30px 0 50px 30px;
+}
+
+#reservation_info {
+	
 }
