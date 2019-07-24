@@ -13,8 +13,11 @@
 <body> 
 
 
-	<header>Sign Up For ABI Machine</header>
-	
+	<header>
+		<div id="title">Sign Up For ABI Machine</div>
+		<div id="admin"><input type="button" value="Admin" onclick="admin()"></button></div>
+		<div id="contact"><input type="button" value="Contact" onclick="show_contact()"></button></div>
+	</header>
 	
 	<div id="panels">
 		<form id="signup_form">
@@ -77,13 +80,13 @@
 		<form id="remove_form"> 
 		<h2 style="text-align: center;"> Remove </h2>
 		Date:
-		<input class="input_box" style="margin-left:51px;width:150px;" type="date" id="remove_date"><br>
+		<input class="input_box" style="margin-left:125px;width:150px;" type="date" id="remove_date"><br>
 		
 		Plate Name: 
-		<input class="input_box" style="margin-left:2px;width:150px;" type="text" id="platename2"><br>
+		<input class="input_box" style="margin-left:76px;width:150px;" type="text" id="platename2"><br>
 		
 		Password:
-		<input class="input_box" style="margin-left:15px;width:150px;" type="password" id="pw3"><br>
+		<input class="input_box" style="margin-left:90px;width:150px;" type="password" id="pw3"><br>
 								
 		<input style="" type="button" value="Remove" onclick="remove();" />
 		
@@ -174,19 +177,21 @@
 	
 	<div id="sideinfo">
 		<div id="notation">
-			<div class="dot" id="dot1"></div>
+			<div class="square" id="sq1"></div>
 			<div style="float:left;">Available</div>
-			<div class="dot" id="dot2"></div>
+			<div class="square" id="sq2"></div>
 			<div style="float:left;clear:right;">Unavailable</div>
 			<br><br>
-			<div class="dot" id="dot3" style="float:left;margin-left: 80px;"></div>
-			<div>Registered Plates</div>
+			<div class="dot" id="dot1"></div>
+			<div style="float:left;">96-well Plates</div>
+			<div class="dot" id="dot2"></div>
+			<div style="float:left;">384-well Plates</div>
 		</div>
 		<br>
 		
-		<div id="avail_info"></div>
+		<div id="avail_info" style="font-size: 27px;font-weight:bold;color:mediumvioletred;padding:60px 50px 0 50px;text-align:center;line-height:30px;height:130px;">CLICK on a DATE on the calendar to VIEW its AVAILABILITY</div>
 		
-		<div id="reservation_info"></div>
+		<div id="reservation_info" style="font-size: 27px;font-weight:bold;color:mediumvioletred;padding:60px 50px 0 50px;text-align:center;line-height:30px;height:220px;">CLICK on a DOT to VIEW a registered PLATE</div>
 	</div>
 	
 

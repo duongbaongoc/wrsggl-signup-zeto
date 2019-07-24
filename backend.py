@@ -24,8 +24,8 @@ base_url = '/api/'
     
 class Availability(db.Model): #dates that are not in the table are available
     ThisDate = db.Column(db.String(10), nullable = False, unique= True, primary_key = True)
-    Num96PlatesAvail = db.Column(db.Integer, nullable = False) #number of plates used/signed up for
-    Num384PlatesAvail = db.Column(db.Integer, nullable = False) #number of plates used/signed up for
+    Num96PlatesRegistered = db.Column(db.Integer, nullable = False) #number of plates used/signed up for
+    Num384PlatesRegistered = db.Column(db.Integer, nullable = False) #number of plates used/signed up for
     
 class Reservation(db.Model):
     id = db.Column(db.Integer, nullable = False, primary_key=True, unique = True)
@@ -147,13 +147,34 @@ def MonthReservations():
     for row in entries:
         result.append(Reservation_to_row_obj(row))
     
-    return jsonify({"status":1,"entries": result}), 200    
+    return jsonify({"status":1,"entries": result}), 200
+
+#Reservation table
+#Return an entry for a given date and plate name
+@app.route(base_url + 'date_platename_entry', methods=["GET"])
+def DatePlateNameEntry():
+    date = request.args.get('yyyy_mm_dd', None)
+    name = request.args.get('plate_name', None)
+    
+    if (date is None):
+        return jsonify({"status":0,"entry": "no date is given"}), 500
+
+    if (name is None):
+        return jsonify({"status":0,"entry": "no plate name is given"}), 500
+		
+    entry = Reservation.query.filter(Reservation.ThisDate==date,Reservation.PlateName==name).first()
+
+    if not entry:
+        return jsonify({"status":0,"entry": "not found"}), 200
+    
+    return jsonify({"status":1,"entry":Reservation_to_row_obj(entry)}), 200
+    
 
 ############################################################################
 #########REQUEST: UPDATE CHANGES TO TABLES##################################
 
 #Availability table
-#Increament Num96PlatesAvail or Num384PlatesAvail by 1 depending on the param
+#Increament Num96PlatesRegistered or Num384PlatesRegistered by 1 depending on the param
 @app.route(base_url + 'add_to_availability', methods=["POST"])
 def AddToAvail():
     info = request.json #i.e. {date: "2019-07-19", plateType: "96"}
@@ -161,9 +182,9 @@ def AddToAvail():
     plateType = info["plateType"]
     entry = Availability.query.filter(Availability.ThisDate == date).first()
     if (plateType == "96"):
-        entry.Num96PlatesAvail += 1
+        entry.Num96PlatesRegistered += 1
     else:
-        entry.Num384PlatesAvail += 1
+        entry.Num384PlatesRegistered += 1
   
     db.session.commit()
 
@@ -172,6 +193,25 @@ def AddToAvail():
 ############################################################################
 #########REQUESTS: REMOVE A RECORD FROM A TABLE#############################
 
+#Reservation table
+#Given a date and a plate name, remove the entry (plate name is unique for each date)
+@app.route(base_url + 'remove-application', methods=["DELETE"])
+def RemoveReservation():
+    date = request.args.get('yyyy_mm_dd', None)
+    name = request.args.get('plate_name', None)
+    
+    if (date is None):
+        return jsonify({"status":0,"entry": "no date is given"}), 500
+
+    if (name is None):
+        return jsonify({"status":0,"entry": "no plate name is given"}), 500
+		
+    entry = Reservation.query.filter(Reservation.ThisDate==date,Reservation.PlateName==name)
+
+    entry.delete()
+    db.session.commit()
+    return jsonify({"status": 1}), 200
+
 ############################################################################
 #########CONVERT A QUERY ROW TO A JSON OBJECT###############################
 
@@ -179,8 +219,8 @@ def AddToAvail():
 def Availability_to_row_obj(row):
     row = {
             "ThisDate": row.ThisDate,
-            "Num96PlatesAvail": row.Num96PlatesAvail,
-            "Num384PlatesAvail": row.Num384PlatesAvail
+            "Num96PlatesRegistered": row.Num96PlatesRegistered,
+            "Num384PlatesRegistered": row.Num384PlatesRegistered
         }
     return row
 

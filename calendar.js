@@ -23,6 +23,15 @@ var makeGetRequest = function(url, onSuccess, onFailure) {
        });
    };
 
+var makeDeleteRequest = function (url, onSuccess, onFailure) {
+        $.ajax({
+            type: 'DELETE',
+            url: apiUrl + url,
+            success: onSuccess,
+            error: onFailure
+        });
+    };
+
 //This function highlights today's cells
 function highlight_today(in_month, in_year)
 {
@@ -95,8 +104,6 @@ function add_circles()
 				
 				el.appendChild(dot);
 			}
-			
-			
 		});
 }
 
@@ -207,9 +214,11 @@ function goback()
 	var yyyy = prev_year;
 	set_cal_frame(mm, yyyy);
 	
-	//cell_hover_css();
+	highlight_today(prev_month, prev_year); //so that when go back to today from the future, today is highlighted
 	
-	highlight_today(prev_month, prev_year);
+	add_circles();
+	
+	show_reservations();
 }
 
 //This function is to move to previous month in the calendar
@@ -250,9 +259,11 @@ function goforward()
 	var yyyy = next_year;
 	set_cal_frame(mm, yyyy);
 	
-	//cell_hover_css();
+	highlight_today(next_month, next_year); //so that when go forward to today from the past, today is highlighted
 	
-	highlight_today(next_month, next_year);
+	add_circles();
+	
+	show_reservations();
 }
 
 //This function is to sign up for a slot
@@ -282,7 +293,7 @@ function signup()
 	
 	if (Date.parse(yyyy + "-" + correct_mm + "-" + dd) > Date.parse(date))
 	{
-		 alertify.alert("Can not choose a date in the past");
+		 alertify.alert("Can not choose a past date");
 		 return;
 	}
 	
@@ -395,20 +406,16 @@ function signup()
 		}
 	} 
 	
-	/***********verify availability***********/
-	//check if anyone ever signed up for this date (Availability table -> CheckAvailabilityTableDate)
-	var available = true;
-	
 	//have a variable for each plate type
-	var Num96PlatesAvail = 0;
-	var Num384PlatesAvail = 0;
+	var Num96PlatesRegistered = 0;
+	var Num384PlatesRegistered = 0;
 	if (selected_platetype == "96")
 	{
-		Num96PlatesAvail += 1;
+		Num96PlatesRegistered += 1;
 	}
 	else
 	{
-		Num384PlatesAvail += 1;
+		Num384PlatesRegistered += 1;
 	}
 	
 	//reservation entry to create
@@ -428,8 +435,8 @@ function signup()
 	//Availability entry, used only when create new Availability entry (the date does not exist yet)
 	var availability_entry = { 
 		ThisDate: date,
-		Num96PlatesAvail: Num96PlatesAvail,
-		Num384PlatesAvail: Num384PlatesAvail
+		Num96PlatesRegistered: Num96PlatesRegistered,
+		Num384PlatesRegistered: Num384PlatesRegistered
 	};
 	
 	//handle to create an entry in the Availability table
@@ -475,28 +482,55 @@ function signup()
 	var onSuccess_make_reservation = function (data) {
 		//check if the date exists in the Availability table
 		makeGetRequest("/api/check-avail-table-date?yyyy_mm_dd=" + date, onSuccess_avail_exist, onFailure_avail_exist);
-		alertify.alert("You have successfully signed up for " + date);
+		alertify.alert("You have successfully signed up for " + date, function(){location.reload();});
 	};
 	var onFailure_make_reservation = function () {
 		alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
 		return;
 	};
 	
-	//call to add entries
-	if (available == true) //add this reservation to the Availability and Reservation table (backend)
-	{
-		makePostRequest("/api/reservation", reservation_entry, onSuccess_make_reservation, onFailure_make_reservation);
-	}
-	
-	//if noone => sign up
-	//else => check if enough room for this plate
-	
-	//save info in the web server
-	
-	//load info of this month to the front end
-
-	
-	
+	/***********verify availability and sign up***********/
+	//check if anyone ever signed up for this date (Availability table -> CheckAvailabilityTableDate)
+	var onSuccess_available = function (data) {
+		//verify avalability
+		var available;
+		if (data.status == 0) //date is not in Availability table => available
+		{
+			available = true;
+		}
+		else //check Availability
+		{
+			var avail_status = date_available(data.Availability.Num96PlatesRegistered, data.Availability.Num384PlatesRegistered);
+			if (avail_status["status"] == "unavail")
+			{
+				available = false;
+			}
+			else //the date is avail but not sure it is avail for 384-plate or not
+			{
+				if (selected_platetype == "384" && avail_status["384"] < 1)
+				{
+					available = false;
+				}
+				else
+				{
+					available = true;
+				}
+			}
+		}
+		//sign up
+		if (available == true)
+		{
+			makePostRequest("/api/reservation", reservation_entry, onSuccess_make_reservation, onFailure_make_reservation);
+		}
+		else 
+		{
+			alertify.alert("Cannot register. The chosen date is full. Choose a different date.");
+		}
+    };
+    var onFailure_available = function () {
+        alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+    };
+    makeGetRequest("/api/date_availability?yyyy_mm_dd=" + date, onSuccess_available, onFailure_available); 
 }
 
 //This function is to remove a slot
@@ -504,14 +538,33 @@ function remove()
 {
 	/***********verify inputs***********/
 	//Date
-	/*var date = document.getElementById("remove_date").value;
+	var date = document.getElementById("remove_date").value;
 	if (!date)
 	{
 		 alertify.alert("Missing a remove date");
 		 return;
 	}
 	
-	//User name
+	//Date must be later today or in the future
+	var today = new Date();
+	var dd = String(today.getDate()).padStart(2, '0');
+	var mm = today.getMonth();
+	var month = monthNames[mm]
+	var yyyy = today.getFullYear();
+	
+	var correct_mm = String(parseInt(mm) + 1);
+	if (correct_mm.length == 1)
+	{
+		correct_mm = "0" + correct_mm;
+	}
+	
+	if (Date.parse(yyyy + "-" + correct_mm + "-" + dd) > Date.parse(date))
+	{
+		 alertify.alert("Can not choose a past date");
+		 return;
+	}
+	
+	//plate name
 	var name = document.getElementById("platename2").value;
 	if (!name || name.value == "")
 	{
@@ -527,11 +580,34 @@ function remove()
 		 return;
 	} 
 	
-	//make sure the date is in the future
-	//make sure there is this plate name on that date
-	//make sure the password is correct
-	*/
-	//////////to test post requests
+	//handle Delete request
+	var onSuccess_delete = function (data) {
+		alertify.alert("Successfully removed the reservation for plate \"" + name + "\" on " + date, function(){location.reload();});
+	};
+	var onFailure_delete = function () {
+		alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+	};
+	
+	//Find the plate on that date
+	var onSuccess_get_entry = function (data) {
+		if (data.entry == "not found")
+		{
+			alertify.alert("There is no plate named \"" + name + "\" on " + date);
+			return;
+		}
+		//make sure the password is correct
+		if (data.entry.Password != pw3.value)
+		{
+			alertify.alert("Incorrect password");
+			return;
+		}
+		//remove the entry
+		makeDeleteRequest("/api/remove-application?yyyy_mm_dd=" + data.entry.ThisDate + "&plate_name=" + data.entry.PlateName, onSuccess_delete, onFailure_delete);
+	};
+	var onFailure_get_entry = function () {
+        alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+    };
+    makeGetRequest("/api/date_platename_entry?yyyy_mm_dd=" + date + "&plate_name=" + name, onSuccess_get_entry, onFailure_get_entry);
 }
 
 
@@ -552,7 +628,7 @@ function show_reservations()
 	{
 		if (el.className != "nil")
 		{
-			el.innerHTML = "<span class='cyan' style='border-radius: 50%;padding:3px;' >" + el.innerHTML + "</span>";
+			el.innerHTML = "<span class='cyan' style='padding:4px;' >" + el.innerHTML + "</span>";
 		}
 		
 		//hide all user circles
@@ -567,24 +643,8 @@ function show_reservations()
 		}
 	});
 		
-	//get the available days of this month and their availability (how many plates available on each day)
-	var onSuccess_available = function (data) {
-        var date_list = data.availability;
-		date_list.forEach(function(date){
-			avail_status = date_available(date.Num96PlatesAvail, date.Num384PlatesAvail);
-			if (avail_status["status"] == "unavail")
-			{
-				var date = date.ThisDate.split("-")[2];
-				var cell = date_get_cell(date);
-				var ind = cell.innerHTML.indexOf(date, 0);
-				cell.innerHTML = "<span class='lightsalmon' style='border-radius: 50%;padding:3px;'>" + cell.innerHTML.substring(ind, cell.innerHTML.length);
-			}
-		});
-    };
-    var onFailure_available = function () {
-        alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
-    };
-    makeGetRequest("/api/month_availability?yyyy_mm=" + yyyy_mm, onSuccess_available, onFailure_available); 
+	//highlight full dates
+	highlight_full_dates(yyyy_mm); 
 	
 	//get all reservations for this month
 	var onSuccess_reservation = function (data) {
@@ -592,6 +652,18 @@ function show_reservations()
 		
 		//show them in the calendar
 		reservation_list.forEach(function(el) {
+			
+			//color of the dots
+			var plate_color;
+			if (el.PlateType == "96")
+			{
+				plate_color = "mediumspringgreen";
+			}
+			else
+			{
+				plate_color = "plum";
+			}
+			
 			var date = el.ThisDate.split("-")[2]; //date of month
 			var cell = date_get_cell(date);//get the cell on the calendar of this date
 			
@@ -603,27 +675,55 @@ function show_reservations()
 				if (child.style.background == "transparent")
 				{
 					child.style.boxShadow = "1px 2px 1px rgba(0,0,0,.5)";
-					child.style.background = "lightskyblue";
+					child.style.background = plate_color;
 					child.className = "tooltip";
 					var span = document.createElement("span");
 					span.className += "tooltiptext";
 					span.innerHTML = el.User;
 					span.style.marginLeft = "20px";
 					child.appendChild(span);
-					child.onclick = function() {
+					
+					//format info
+					var fluor_list = el.Flour.split(",");
+					var fluors = "";
+					for (var i = 0; i < fluor_list.length; i++)
+					{
+						fluors += fluor_list[i] + "&nbsp&nbsp&nbsp";
+					}
+		
+					var tokens = el.ThisDate.split("-");
+					var mm_ind = parseInt(tokens[1]) - 1;
+					var month = monthNames[mm_ind];
+					var date_string = month + " " + tokens[2] + ", " + tokens[0];
+					
+					child.onclick = function(e) {
 						var panel = document.getElementById("reservation_info");
-						var message = "<span style='margin-left:45px;'>SIGN-UP INFO</span><br><br>";
-						message += "USER:<span style='margin-left:115px;'>" + el.User + "<br>";
-						message += "PLATE NAME:<span style='margin-left:60px;'>" + el.PlateName + "<br>";
-						message += "Date:<span style='margin-left:126px;'>" + el.ThisDate + "<br>";
-						message += "Number of Markers:<span style='margin-left:23px;'>" + el.Markers + "<br>";
-						message += "Ladders:<span style='margin-left:102px;'>" + el.Ladder + "<br>";
-						message += "Fluors:<span style='margin-left:116px;'>" + el.Flour + "<br>";
-						message += "Plate Type:<span style='margin-left:85px;'>" + el.PlateType + "<br>"; 
-						message += "Principle Investigator:<span style='margin-left:12px;'>" + el.PI + "<br>"; 
-						message += "Email:<span style='margin-left:121px;'>" + el.Email + "<br>";
+						var message = "<h2 style='margin-left:45px;'>Sign-up Info</h2>";
+						message += "USER:<span style='margin-left:115px;font-weight:bold;color:mediumblue;'>" + el.User + "</span><br>";
+						message += "PLATE NAME:<span style='margin-left:60px;font-weight:bold;color:mediumblue;'>" + el.PlateName + "</span><br>";
+						message += "Date:<span style='margin-left:126px;font-weight:bold;color:mediumblue;'>" + date_string + "</span><br>";
+						message += "Number of Markers:<span style='margin-left:23px;font-weight:bold;color:mediumblue;'>" + el.Markers + "</span><br>";
+						message += "Ladders:<span style='margin-left:102px;font-weight:bold;color:mediumblue;'>" + el.Ladder + "</span><br>";
+						message += "Fluors:<span style='margin-left:116px;font-weight:bold;color:mediumblue;'>" + fluors + "</span><br>";
+						message += "Plate Type:<span style='margin-left:85px;font-weight:bold;color:mediumblue;'>" + el.PlateType + "</span><br>";
+						message += "Principle Investigator:<span style='margin-left:12px;font-weight:bold;color:mediumblue;'>" + el.PI + "</span><br>";
+						message += "Email:<span style='margin-left:121px;font-weight:bold;color:mediumblue;'>" + el.Email + "</span><br>";
+						panel.style = "none";
 						panel.innerHTML = message;
+						e.stopPropagation();
 					};
+					
+					child.addEventListener("mouseover", event => {
+						child.style.boxShadow = "0 1px 6px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.24)";
+						child.style.width = "17px";
+						child.style.height = "17px";
+					});
+
+					child.addEventListener("mouseout", event => {
+						child.style.boxShadow = "1px 2px 1px rgba(0,0,0,.5)";
+						child.style.width = "15px";
+						child.style.height = "15px";
+					});
 					break;
 				}
 			}
@@ -656,6 +756,7 @@ function show_reservations()
 //param n_96: int - number of 96 plates
 //param n_384: int - number of 384 plates
 //return "avail" or "unavail", and how many avail plates of each plate type
+//Note: "avail" does not all avail to both 96-plate and 384-plate
 function date_available(n_96, n_384){
 	var total_wells = 1536;
 	var unavail_wells = n_96*96 + n_384*384;
@@ -702,25 +803,53 @@ function show_avail(cell)
 	}
 	var dd = cell.innerHTML.split(">")[1].split("<")[0];
 	
-	var message = "<span style='margin-left:45px;'>AVAILABILITY</span><br><br>";
-	message += "Date:<span style='margin-left:123px;'>" + cur_month + dd + cur_year + "</span><br>";
+	var message = "<h2 style='margin-left:45px;'>Availability</h2>";
+	message += "Date:<span style='margin-left:123px;font-weight:bold;color:mediumblue;'>" + cur_month + " " + dd + ", " + cur_year + "</span><br>";
 	
 	//get cell info from backend
 	var onSuccess_available = function (data) {
 		if (data.status == 0) //date is not in Availability table => available
 		{
-			message +=  "Number of 96-plates  :<span style='margin-left:9px;'>16 plates</span><br><span style='margin-left:45px;'>OR</span><br>Number of 384-plates:<span style='margin-left:5px;'>4 plates</span><br>";
+			message +=  "Number of 96-plates  :<span style='margin-left:9px;font-weight:bold;color:mediumblue;'>16 plates</span><br><span style='margin-left:45px;'>OR</span><br>Number of 384-plates:<span style='margin-left:5px;font-weight:bold;color:mediumblue;'>4 plates</span><br>";
 		}
 		else //check Availability
 		{
-			var avail_status = date_available(data.Availability.Num96PlatesAvail, data.Availability.Num384PlatesAvail);
-			message +=  "Number of 96-plates  :<span style='margin-left:9px;'>" + avail_status["96"] + " plates</span><br><span style='margin-left:45px;'>OR</span><br>Number of 384-plates:<span style='margin-left:5px;'>" + avail_status["384"] + " plates</span><br>";
+			var avail_status = date_available(data.Availability.Num96PlatesRegistered, data.Availability.Num384PlatesRegistered);
+			message +=  "Number of 96-plates  :<span style='margin-left:9px;font-weight:bold;color:mediumblue;'>" + avail_status["96"] + " plates</span><br><span style='margin-left:45px;'>OR</span><br>Number of 384-plates:<span style='margin-left:5px;font-weight:bold;color:mediumblue;'>" + avail_status["384"] + " plates</span><br>";
 		}
-       
+        document.getElementById("avail_info").style = "none";
 		document.getElementById("avail_info").innerHTML = message;
     };
     var onFailure_available = function () {
         alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
     };
     makeGetRequest("/api/date_availability?yyyy_mm_dd=" + cur_year + "-" + mm + "-" + dd, onSuccess_available, onFailure_available); 
+}
+
+//This function highlight full dates of a month
+function highlight_full_dates(yyyy_mm)
+{
+	var onSuccess_available = function (data) {
+        var date_list = data.availability;
+		date_list.forEach(function(date){
+			avail_status = date_available(date.Num96PlatesRegistered, date.Num384PlatesRegistered);
+			if (avail_status["status"] == "unavail")
+			{
+				var date = date.ThisDate.split("-")[2];
+				var cell = date_get_cell(date);
+				var ind = cell.innerHTML.indexOf(date, 0);
+				cell.innerHTML = "<span class='lightsalmon' style='padding:3px;'>" + cell.innerHTML.substring(ind, cell.innerHTML.length);
+			}
+		});
+    };
+    var onFailure_available = function () {
+        alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+    };
+    makeGetRequest("/api/month_availability?yyyy_mm=" + yyyy_mm, onSuccess_available, onFailure_available);
+}
+
+//This function is to show contact info
+function show_contact()
+{
+	alertify.alert("Ngoc Duong: ngoc.duong@wsu.edu");
 }
