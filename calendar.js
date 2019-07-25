@@ -1,5 +1,12 @@
 const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 var apiUrl = 'http://localhost:5000';
+var prev_mode = sessionStorage.getItem("mode");
+console.log(prev_mode);
+var mode = 'user';
+if (prev_mode == 'admin')
+{
+	mode = 'admin';
+}
 
 var makePostRequest = function(url, data, onSuccess, onFailure) {
         $.ajax({
@@ -79,6 +86,14 @@ function init_cal ()
 	add_circles();
 	
 	show_reservations();
+	
+	document.getElementById("logout_admin").style.display  = "none";
+	document.getElementById("undo").style.display  = "none";
+	
+	if (mode == 'admin')
+	{
+		run_admin();
+	}
 }
 
 //This function adds circles to each cell of the calendar
@@ -86,25 +101,24 @@ function init_cal ()
 function add_circles()
 {
 	document.getElementById('cal-frame').querySelectorAll("td").forEach(function(el)
+	{
+		for (var i = 0; i <= 15; i++)
 		{
-			for (var i = 0; i <= 15; i++)
+			var dot = document.createElement("span");
+			dot.className += "dot";
+			dot.style.height = "15px";
+			dot.style.width = "15px";
+			dot.style.cssFloat = "right";
+			dot.style.borderRadius = "50%";
+			dot.style.margin = "2px 2px 2px 2px";
+			
+			if (i % 4 == 0)
 			{
-				var dot = document.createElement("span");
-				dot.className += "dot";
-				dot.style.height = "15px";
-				dot.style.width = "15px";
-				dot.style.cssFloat = "right";
-				dot.style.borderRadius = "50%";
-				dot.style.margin = "2px 2px 2px 2px";
-				
-				if (i % 4 == 0)
-				{
-					dot.style.clear = "right";
-				}
-				
-				el.appendChild(dot);
+				dot.style.clear = "right";
 			}
-		});
+			el.appendChild(dot);
+		}
+	});
 }
 
 //This function is to set the correct cal-frame content
@@ -330,207 +344,226 @@ function signup()
 	} 
 	
 	//Plate name must be unique for this day
-	
-	//Email
-	var email = document.getElementById("email");
-	if (!email || email.value == "")
-	{
-		 alertify.alert("Missing email");
-		 return;
-	} 
-	
-	//New password
-	var pw1 = document.getElementById("password1");
-	if (!pw1 || pw1.value == "")
-	{
-		 alertify.alert("Missing new password");
-		 return;
-	} 
-	
-	//Retype password
-	var pw2 = document.getElementById("password2");
-	if (!pw2 || pw2.value == "")
-	{
-		 alertify.alert("Retype the password");
-		 return;
-	} 
-	
-	//lab name
-	var lab = document.getElementById("labname");
-	if (!lab || lab.value == "")
-	{
-		 alertify.alert("Missing abbreviation lab name");
-		 return;
-	} 
-	
-	/***********verify password***********/
-	if (pw1.value != pw2.value)
-	{
-		alertify.alert("'New Password' and 'Retype Password' do not match");
-		return;
-	}
-	
-	/***********verify lab name***********/
-	if (lab.value.toUpperCase() != "WRSGGL")
-	{
-		alertify.alert("Incorrect lab name");
-		return;
-	}
-	
-	/***********get the rest fields***********/
-	var all_ladder = document.getElementById("ladder").getElementsByTagName("input");
-	for (var i = 0, num = all_ladder.length; i < num; i++)
-	{
-		if (all_ladder[i].checked)
+	var onSuccess_entries = function(data){
+		for (var entry of data.entries)
 		{
-			var selected_ladder = all_ladder[i].value;
-		}
-	}
-	
-	var selected_fluors = "";
-	var all_fluors = document.getElementById("fluor").getElementsByTagName("input");
-	for (i = 0, num = all_fluors.length; i < num; i++)
-	{
-		if (all_fluors[i].checked)
-		{
-			selected_fluors += all_fluors[i].value + ",";
-		}
-	} 
-	
-	var all_platetype = document.getElementById("platetype").getElementsByTagName("input");
-	for (i = 0, num = all_platetype.length; i < num; i++)
-	{
-		if (all_platetype[i].checked)
-		{
-			var selected_platetype = all_platetype[i].value;
-		}
-	} 
-	
-	//have a variable for each plate type
-	var Num96PlatesRegistered = 0;
-	var Num384PlatesRegistered = 0;
-	if (selected_platetype == "96")
-	{
-		Num96PlatesRegistered += 1;
-	}
-	else
-	{
-		Num384PlatesRegistered += 1;
-	}
-	
-	//reservation entry to create
-	var reservation_entry = {
-        ThisDate: date,
-		User: user.value,
-		Markers: n_markers.value,
-		Ladder: selected_ladder,
-		Flour: selected_fluors,
-		PlateType: selected_platetype,
-		PI: PI.value,
-		PlateName: plateName.value,
-		Email: email.value,
-		Password: pw1.value
-    };
-	
-	//Availability entry, used only when create new Availability entry (the date does not exist yet)
-	var availability_entry = { 
-		ThisDate: date,
-		Num96PlatesRegistered: Num96PlatesRegistered,
-		Num384PlatesRegistered: Num384PlatesRegistered
-	};
-	
-	//handle to create an entry in the Availability table
-	var onSuccess_make_availability = function (data) {
-		console.log("Successfully created an entry for the Availability table.");
-	};	
-	var onFailure_make_availability = function () {
-		alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
-		return;
-	};
-	
-	//entry to update Availability
-	var update_entry = {
-		date: date,
-		plateType: selected_platetype
-	}
-	
-	//handle to update Availability
-	var onSuccess_update_availability = function(data){
-	};
-	var onFailure_update_availability= function(){
-		alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
-		return;
-	};
-	
-	//handle to check if a date in the Availability table exists
-	var onSuccess_avail_exist = function (data) {
-		if (data.status == 1)//if exists => update the table
-		{
-			makePostRequest("/api/add_to_availability", update_entry, onSuccess_update_availability, onFailure_update_availability);
-		}
-		else//if does not exist => create a new entry
-		{
-			makePostRequest("/api/availability", availability_entry, onSuccess_make_availability, onFailure_make_availability);
-		}
-	};	
-	var onFailure_avail_exist = function () {
-		alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
-		return;
-	};
-		
-	//handle to add a reservation entry and availability entry to the tables
-	var onSuccess_make_reservation = function (data) {
-		//check if the date exists in the Availability table
-		makeGetRequest("/api/check-avail-table-date?yyyy_mm_dd=" + date, onSuccess_avail_exist, onFailure_avail_exist);
-		alertify.alert("You have successfully signed up for " + date, function(){location.reload();});
-	};
-	var onFailure_make_reservation = function () {
-		alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
-		return;
-	};
-	
-	/***********verify availability and sign up***********/
-	//check if anyone ever signed up for this date (Availability table -> CheckAvailabilityTableDate)
-	var onSuccess_available = function (data) {
-		//verify avalability
-		var available;
-		if (data.status == 0) //date is not in Availability table => available
-		{
-			available = true;
-		}
-		else //check Availability
-		{
-			var avail_status = date_available(data.Availability.Num96PlatesRegistered, data.Availability.Num384PlatesRegistered);
-			if (avail_status["status"] == "unavail")
+			if (entry.PlateName == plateName.value)
 			{
-				available = false;
+				alertify.alert("Plate name \"" + plateName.value + "\"already exists on " + date);
+				return;
 			}
-			else //the date is avail but not sure it is avail for 384-plate or not
+		}	
+		keep_going();
+	};
+	var onFailure_entries = function() {
+		alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+	};
+	makeGetRequest("/api/date_reservations?yyyy-mm-dd=" + date, onSuccess_entries, onFailure_entries);
+	
+	//this function has no real meaning
+	//if using the code without having this wrapping function, there is no way to stop executing the code when (entry.PlateName != plateName.value)
+	function keep_going(){
+		//Email
+		var email = document.getElementById("email");
+		if (!email || email.value == "")
+		{
+			 alertify.alert("Missing email");
+			 return;
+		} 
+		
+		//New password
+		var pw1 = document.getElementById("password1");
+		if (!pw1 || pw1.value == "")
+		{
+			 alertify.alert("Missing new password");
+			 return;
+		} 
+		
+		//Retype password
+		var pw2 = document.getElementById("password2");
+		if (!pw2 || pw2.value == "")
+		{
+			 alertify.alert("Retype the password");
+			 return;
+		} 
+		
+		//lab name
+		var lab = document.getElementById("labname");
+		if (!lab || lab.value == "")
+		{
+			 alertify.alert("Missing abbreviation lab name");
+			 return;
+		} 
+		
+		/***********verify password***********/
+		if (pw1.value != pw2.value)
+		{
+			alertify.alert("'New Password' and 'Retype Password' do not match");
+			return;
+		}
+		
+		/***********verify lab name***********/
+		if (lab.value.toUpperCase() != "WRSGGL")
+		{
+			alertify.alert("Incorrect lab name");
+			return;
+		}
+		
+		/***********get the rest fields***********/
+		var all_ladder = document.getElementById("ladder").getElementsByTagName("input");
+		for (var i = 0, num = all_ladder.length; i < num; i++)
+		{
+			if (all_ladder[i].checked)
 			{
-				if (selected_platetype == "384" && avail_status["384"] < 1)
+				var selected_ladder = all_ladder[i].value;
+			}
+		}
+		
+		var selected_fluors = "";
+		var all_fluors = document.getElementById("fluor").getElementsByTagName("input");
+		for (i = 0, num = all_fluors.length; i < num; i++)
+		{
+			if (all_fluors[i].checked)
+			{
+				selected_fluors += all_fluors[i].value + ",";
+			}
+		} 
+		
+		var all_platetype = document.getElementById("platetype").getElementsByTagName("input");
+		for (i = 0, num = all_platetype.length; i < num; i++)
+		{
+			if (all_platetype[i].checked)
+			{
+				var selected_platetype = all_platetype[i].value;
+			}
+		} 
+		
+		//have a variable for each plate type
+		var Num96PlatesRegistered = 0;
+		var Num384PlatesRegistered = 0;
+		if (selected_platetype == "96")
+		{
+			Num96PlatesRegistered += 1;
+		}
+		else
+		{
+			Num384PlatesRegistered += 1;
+		}
+		
+		//reservation entry to create
+		var reservation_entry = {
+			ThisDate: date,
+			User: user.value,
+			Markers: n_markers.value,
+			Ladder: selected_ladder,
+			Flour: selected_fluors,
+			PlateType: selected_platetype,
+			PI: PI.value,
+			PlateName: plateName.value,
+			Email: email.value,
+			Password: pw1.value
+		};
+		
+		//Availability entry, used only when create new Availability entry (the date does not exist yet)
+		var availability_entry = { 
+			ThisDate: date,
+			Num96PlatesRegistered: Num96PlatesRegistered,
+			Num384PlatesRegistered: Num384PlatesRegistered
+		};
+		
+		//handle to create an entry in the Availability table
+		var onSuccess_make_availability = function (data) {
+			console.log("Successfully created an entry for the Availability table.");
+		};	
+		var onFailure_make_availability = function () {
+			alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+			return;
+		};
+		
+		//entry to update Availability
+		var update_entry = {
+			date: date,
+			plateType: selected_platetype
+		}
+		
+		//handle to update Availability
+		var onSuccess_update_availability = function(data){
+		};
+		var onFailure_update_availability= function(){
+			alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+			return;
+		};
+		
+		//handle to check if a date in the Availability table exists
+		var onSuccess_avail_exist = function (data) {
+			if (data.status == 1)//if exists => update the table
+			{
+				makePostRequest("/api/add_to_availability", update_entry, onSuccess_update_availability, onFailure_update_availability);
+			}
+			else//if does not exist => create a new entry
+			{
+				makePostRequest("/api/availability", availability_entry, onSuccess_make_availability, onFailure_make_availability);
+			}
+		};	
+		var onFailure_avail_exist = function () {
+			alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+			return;
+		};
+			
+		//handle to add a reservation entry and availability entry to the tables
+		var onSuccess_make_reservation = function (data) {
+			//check if the date exists in the Availability table
+			makeGetRequest("/api/check-avail-table-date?yyyy_mm_dd=" + date, onSuccess_avail_exist, onFailure_avail_exist);
+			alertify.alert("You have successfully signed up for " + date, function(){location.reload();});
+		};
+		var onFailure_make_reservation = function () {
+			alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+			return;
+		};
+		
+		/***********verify availability and sign up***********/
+		//check if anyone ever signed up for this date (Availability table -> CheckAvailabilityTableDate)
+		var onSuccess_available = function (data) {
+			//verify avalability
+			var available;
+			if (data.status == 0) //date is not in Availability table => available
+			{
+				available = true;
+			}
+			else //check Availability
+			{
+				var avail_status = date_available(data.Availability.Num96PlatesRegistered, data.Availability.Num384PlatesRegistered);
+				if (avail_status["status"] == "unavail")
 				{
 					available = false;
 				}
-				else
+				else //the date is avail but not sure it is avail for 384-plate or not
 				{
-					available = true;
+					if (selected_platetype == "384" && avail_status["384"] < 1)
+					{
+						available = false;
+					}
+					else
+					{
+						available = true;
+					}
 				}
 			}
-		}
-		//sign up
-		if (available == true)
-		{
-			makePostRequest("/api/reservation", reservation_entry, onSuccess_make_reservation, onFailure_make_reservation);
-		}
-		else 
-		{
-			alertify.alert("Cannot register. The chosen date is full. Choose a different date.");
-		}
-    };
-    var onFailure_available = function () {
-        alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
-    };
-    makeGetRequest("/api/date_availability?yyyy_mm_dd=" + date, onSuccess_available, onFailure_available); 
+			//sign up
+			if (available == true)
+			{
+				makePostRequest("/api/reservation", reservation_entry, onSuccess_make_reservation, onFailure_make_reservation);
+			}
+			else 
+			{
+				alertify.alert("Cannot register. The chosen date is full. Choose a different date.");
+			}
+		};
+		var onFailure_available = function () {
+			alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+		};
+		makeGetRequest("/api/date_availability?yyyy_mm_dd=" + date, onSuccess_available, onFailure_available); 
+	}
 }
 
 //This function is to remove a slot
@@ -572,13 +605,16 @@ function remove()
 		 return;
 	}
 	
-	//Password
-	var pw3 = document.getElementById("pw3");
-	if (!pw3 || pw3.value == "")
+	if (mode == 'user')
 	{
-		 alertify.alert("Missing password to remove");
-		 return;
-	} 
+		//Password
+		var pw3 = document.getElementById("pw3");
+		if (!pw3 || pw3.value == "")
+		{
+			 alertify.alert("Missing password to remove");
+			 return;
+		} 
+	}
 	
 	//handle Delete request
 	var onSuccess_delete = function (data) {
@@ -596,13 +632,40 @@ function remove()
 			return;
 		}
 		//make sure the password is correct
-		if (data.entry.Password != pw3.value)
+		if (mode == 'user' && data.entry.Password != pw3.value)
 		{
 			alertify.alert("Incorrect password");
 			return;
 		}
 		//remove the entry
-		makeDeleteRequest("/api/remove-application?yyyy_mm_dd=" + data.entry.ThisDate + "&plate_name=" + data.entry.PlateName, onSuccess_delete, onFailure_delete);
+		if (mode == 'user') //permanently delete
+		{
+			makeDeleteRequest("/api/remove-reservation?yyyy_mm_dd=" + data.entry.ThisDate + "&plate_name=" + data.entry.PlateName, onSuccess_delete, onFailure_delete);
+		}
+		else //keep in Recycle table of the backend
+		{
+			//make data.entry a Recycle entry
+			var recycle_entry = {
+				ThisDate: data.entry.ThisDate,
+				User: data.entry.User,
+				Markers: data.entry.Markers,
+				Ladder: data.entry.Ladder,
+				Flour: data.entry.Flour,
+				PlateType: data.entry.PlateType,
+				PI: data.entry.PI,
+				PlateName: data.entry.PlateName,
+				Email: data.entry.Email,
+				Password: data.entry.Password
+			};
+			var onSuccess_make_recycle = function() {
+				//delete from Reservation table
+				makeDeleteRequest("/api/remove-reservation?yyyy_mm_dd=" + data.entry.ThisDate + "&plate_name=" + data.entry.PlateName, onSuccess_delete, onFailure_delete);
+			};
+			var onFailure_make_recycle = function() {
+				alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+			};
+			makePostRequest("/api/recycle", recycle_entry, onSuccess_make_recycle, onFailure_make_recycle);
+		}
 	};
 	var onFailure_get_entry = function () {
         alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
@@ -852,4 +915,120 @@ function highlight_full_dates(yyyy_mm)
 function show_contact()
 {
 	alertify.alert("Ngoc Duong: ngoc.duong@wsu.edu");
+}
+
+//This function is to handle "admin" button: varify admin password
+function admin()
+{
+	alertify.prompt("Admin Password:", function(e,pw) {
+		if (!e)//cancel
+		{
+			return;
+		}
+		
+		//get the correct password
+		var onSuccess_pw = function (data) {
+			if (pw == data.password)
+			{
+				run_admin();
+			}
+			else
+			{
+				alertify.alert("Incorrect Admin Password");
+				admin();
+			}
+		};
+		var onFailure_pw = function () {
+			alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+		};
+		makeGetRequest("/api/admin_password", onSuccess_pw, onFailure_pw);	
+	});
+}
+
+//This function runs admin's functions once successfully logged-in
+//remove w/o password, have an "undo" button
+function run_admin()
+{
+	//have a "log-out admin" button
+	document.getElementById("logout_admin").style.display  = "block";
+	document.getElementById("admin").style.display  = "none";
+		
+	//The remove panel: freeze the Password field
+	document.getElementById("pw3").disabled = true;
+	
+	//have a "undo" button
+	document.getElementById("undo").style.display  = "block";
+	
+	//allow to remove w/o password
+	mode = 'admin';
+	sessionStorage.setItem("mode", mode);
+}
+
+//This function is to handle "logout_admin" button
+function logout_admin()
+{
+	//get the "admin" button back
+	document.getElementById("admin").style.display  = "block";
+	document.getElementById("logout_admin").style.display  = "none";
+	
+	//The remove panel: unfreeze the Password field
+	document.getElementById("pw3").disabled = false;
+	
+	//hide the "undo" button
+	document.getElementById("undo").style.display  = "none";
+	
+	//not allow to  remove w/o password
+	mode = 'user';
+	sessionStorage.setItem("mode", mode);
+}
+
+//Handle "undo remove" button
+function undo_remove()
+{
+	
+	//handle Delete request
+	var onSuccess_delete = function (data) {
+		alertify.alert("Successfully undo", function(){location.reload();});
+	};
+	var onFailure_delete = function () {
+		alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+	};
+	
+	//handle to make a Reservation entry
+	var onSuccess_make_reservation = function(data) {
+		//delete it from the Recycle table
+		makeDeleteRequest("/api/remove-recycle?yyyy_mm_dd=" + data.Reservation.ThisDate + "&plate_name=" + data.Reservation.PlateName, onSuccess_delete, onFailure_delete);
+	};
+	var onFailure_make_reservation = function() {
+		alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+	};
+			
+	//get the first entry of Recycle table
+	var onSuccess_rec_first = function(data) {
+		if (data.status == "0")
+		{
+			alertify.alert("No action to undo");
+		}
+		else
+		{
+			//make it a new entry of Reservation table
+			var reservation_entry = {
+				ThisDate: data.entry.ThisDate,
+				User: data.entry.User,
+				Markers: data.entry.Markers,
+				Ladder: data.entry.Ladder,
+				Flour: data.entry.Flour,
+				PlateType: data.entry.PlateType,
+				PI: data.entry.PI,
+				PlateName: data.entry.PlateName,
+				Email: data.entry.Email,
+				Password: data.entry.Password
+			};
+			makePostRequest("/api/reservation", reservation_entry, onSuccess_make_reservation, onFailure_make_reservation);
+		}
+	};
+	var onFailure_rec_first = function() {
+		alertify.alert("Failed to sign up due to backend error. Please contact the lab.");
+	};
+	makeGetRequest("/api/Recycle_first", onSuccess_rec_first, onFailure_rec_first);
 }

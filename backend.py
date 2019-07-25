@@ -53,6 +53,7 @@ class Recycle(db.Model):
     Email = db.Column(db.String(70), nullable = False)
     Password = db.Column(db.String(50), nullable = False)
 
+
 ############################################################################
 #########REQUEST: CREATE A NEW DATA ENTRY###################################
 
@@ -150,6 +151,22 @@ def MonthReservations():
     return jsonify({"status":1,"entries": result}), 200
 
 #Reservation table
+#Return all entries of a date
+@app.route(base_url + 'date_reservations', methods=["GET"])
+def DateReservations():
+    yyyy_mm_dd = request.args.get('yyyy-mm-dd', None)
+    if (yyyy_mm_dd is None):
+        return jsonify({"status":0,"entries": "no date is given"}), 500
+		
+    entries = Reservation.query.filter(Reservation.ThisDate==yyyy_mm_dd)
+
+    result = []
+    for row in entries:
+        result.append(Reservation_to_row_obj(row))
+    
+    return jsonify({"status":1,"entries": result}), 200
+
+#Reservation table
 #Return an entry for a given date and plate name
 @app.route(base_url + 'date_platename_entry', methods=["GET"])
 def DatePlateNameEntry():
@@ -169,7 +186,16 @@ def DatePlateNameEntry():
     
     return jsonify({"status":1,"entry":Reservation_to_row_obj(entry)}), 200
     
-
+#Recycle table
+#Return the first entry of the table
+@app.route(base_url + "Recycle_first", methods=["GET"])
+def FirstRecycle():
+    entry = Recycle.query.first()
+    if (entry != None):
+        return jsonify({"status": 1,"entry":Recycle_to_row_obj(entry)}), 200
+    else:
+        return jsonify({"status": 0}), 200
+    
 ############################################################################
 #########REQUEST: UPDATE CHANGES TO TABLES##################################
 
@@ -195,7 +221,7 @@ def AddToAvail():
 
 #Reservation table
 #Given a date and a plate name, remove the entry (plate name is unique for each date)
-@app.route(base_url + 'remove-application', methods=["DELETE"])
+@app.route(base_url + 'remove-reservation', methods=["DELETE"])
 def RemoveReservation():
     date = request.args.get('yyyy_mm_dd', None)
     name = request.args.get('plate_name', None)
@@ -211,6 +237,26 @@ def RemoveReservation():
     entry.delete()
     db.session.commit()
     return jsonify({"status": 1}), 200
+
+#Recycle table
+#Given a date and a plate name, remove the entry (plate name is unique for each date)
+@app.route(base_url + 'remove-recycle', methods=["DELETE"])
+def RemoveRecycle():
+    date = request.args.get('yyyy_mm_dd', None)
+    name = request.args.get('plate_name', None)
+    
+    if (date is None):
+        return jsonify({"status":0,"entry": "no date is given"}), 500
+
+    if (name is None):
+        return jsonify({"status":0,"entry": "no plate name is given"}), 500
+		
+    entry = Recycle.query.filter(Recycle.ThisDate==date,Recycle.PlateName==name)
+
+    entry.delete()
+    db.session.commit()
+    return jsonify({"status": 1}), 200
+
 
 ############################################################################
 #########CONVERT A QUERY ROW TO A JSON OBJECT###############################
@@ -257,6 +303,15 @@ def Recycle_to_row_obj(row):
             "Password": row.Password
         }
     return row
+
+############################################################################
+#########CREATE TABLES AND RUN FLASK APPLICATIONS###########################
+
+#This function sets up and returns the admin password
+@app.route(base_url + 'admin_password', methods=["GET"])
+def AdminPassword():
+    pw = "T@est!vum291"
+    return jsonify({"password": pw}), 200
 
 ############################################################################
 #########CREATE TABLES AND RUN FLASK APPLICATIONS###########################
