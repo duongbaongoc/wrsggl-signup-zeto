@@ -1,5 +1,5 @@
 const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-var apiUrl = 'http://localhost:5000';
+var apiUrl = 'https://signup-abi.herokuapp.com';
 var prev_mode = sessionStorage.getItem("mode");
 console.log(prev_mode);
 var mode = 'user';
