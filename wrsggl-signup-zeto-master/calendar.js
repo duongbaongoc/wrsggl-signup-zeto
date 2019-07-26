@@ -844,10 +844,6 @@ function date_get_cell(dd)
 		if (el.className != "nil")
 		{
 			var date = el.innerHTML.split(">")[1].split("<")[0];
-			if (date.length == 1)
-			{
-				date = "0" + date;
-			}
 			if (date == dd)
 			{
 				return el;
